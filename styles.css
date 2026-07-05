@@ -90,12 +90,12 @@ nav.site-nav a[aria-current="page"] {
 /* ----- portrait ----- */
 .portrait {
   float: right;
-  width: 118px;
-  height: 118px;
+  width: 156px;
+  height: 156px;
   object-fit: cover;
   border-radius: 50%;
   border: 1px solid var(--hairline);
-  margin: 0.3rem 0 0.8rem 1.4rem;
+  margin: 0.2rem 0 1rem 1.6rem;
   background: #ececea;
 }
 
@@ -103,8 +103,8 @@ nav.site-nav a[aria-current="page"] {
   .portrait {
     float: none;
     display: block;
-    width: 96px;
-    height: 96px;
+    width: 124px;
+    height: 124px;
     margin: 0 0 1.2rem;
   }
 }
