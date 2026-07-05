@@ -1,0 +1,335 @@
+/* ---------------------------------------------------------
+   Vijay Kodamalla — personal site
+   Palette
+     paper    #F6F7F5   cool graph-paper white
+     ink      #171D1A   near-black green-tinted ink
+     muted    #59635D   secondary text
+     kernel   #0F7A4E   profiler "kernel track" green (accent)
+     stall    #B4741F   "before" / stall amber
+     hairline #DFE3DE   rules and borders
+   Type
+     Newsreader      — body & display (research-notebook serif)
+     IBM Plex Mono   — nav, labels, metrics (profiler vernacular)
+   --------------------------------------------------------- */
+
+:root {
+  --paper: #f6f7f5;
+  --ink: #171d1a;
+  --muted: #59635d;
+  --kernel: #0f7a4e;
+  --stall: #b4741f;
+  --hairline: #dfe3de;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --serif: "Newsreader", Georgia, "Times New Roman", serif;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 1.1rem;
+  line-height: 1.65;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+}
+
+.page {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 2.5rem 1.4rem 5rem;
+}
+
+/* ----- nav ----- */
+header.site {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 3rem;
+}
+
+.wordmark {
+  font-family: var(--mono);
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.wordmark span { color: var(--kernel); }
+
+nav.site-nav {
+  display: flex;
+  gap: 1.4rem;
+  font-family: var(--mono);
+  font-size: 0.82rem;
+}
+
+nav.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding-bottom: 2px;
+}
+
+nav.site-nav a:hover { color: var(--ink); }
+
+nav.site-nav a[aria-current="page"] {
+  color: var(--ink);
+  border-bottom: 2px solid var(--kernel);
+}
+
+/* ----- portrait ----- */
+.portrait {
+  float: right;
+  width: 118px;
+  height: 118px;
+  object-fit: cover;
+  border-radius: 10px;
+  border: 1px solid var(--hairline);
+  margin: 0.3rem 0 0.8rem 1.4rem;
+  background: #ececea;
+}
+
+@media (max-width: 520px) {
+  .portrait {
+    float: none;
+    display: block;
+    width: 96px;
+    height: 96px;
+    margin: 0 0 1.2rem;
+  }
+}
+
+/* ----- type ----- */
+h1 {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(2rem, 6vw, 2.7rem);
+  line-height: 1.12;
+  letter-spacing: -0.015em;
+  margin: 0 0 1.2rem;
+}
+
+h1 em {
+  font-style: italic;
+  color: var(--kernel);
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 3.2rem 0 1.1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.eyebrow::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--hairline);
+}
+
+p { margin: 0 0 1.1rem; }
+
+a { color: var(--ink); text-decoration-color: var(--kernel); text-underline-offset: 3px; }
+a:hover { color: var(--kernel); }
+
+strong { font-weight: 600; }
+
+.muted { color: var(--muted); }
+
+/* ----- signature: measured strip (profiler bars) ----- */
+.measured {
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  background: #fdfdfc;
+  padding: 1.2rem 1.3rem 1.05rem;
+  margin: 2rem 0 0.4rem;
+}
+
+.measured-caption {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 1rem;
+}
+
+.metric { margin-bottom: 1rem; }
+.metric:last-child { margin-bottom: 0.2rem; }
+
+.metric-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+  margin-bottom: 0.35rem;
+}
+
+.metric-label .value { color: var(--kernel); font-weight: 600; white-space: nowrap; }
+
+.track {
+  position: relative;
+  height: 9px;
+  border-radius: 2px;
+  background: repeating-linear-gradient(
+    90deg,
+    #ececea 0 6px,
+    #f3f3f1 6px 12px
+  );
+  overflow: hidden;
+}
+
+.bar {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 2px;
+  background: var(--kernel);
+  width: 0;
+  animation: grow 0.9s ease-out forwards;
+}
+
+.bar.before { background: var(--stall); opacity: 0.85; }
+
+@keyframes grow { to { width: var(--w); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .bar { animation: none; width: var(--w); }
+  html { scroll-behavior: auto; }
+}
+
+.measured-footnote {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+  margin-top: 0.9rem;
+}
+
+/* ----- project / writing lists ----- */
+.item { margin-bottom: 1.9rem; }
+
+.item h3 {
+  font-family: var(--serif);
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 0 0 0.25rem;
+  line-height: 1.3;
+}
+
+.item h3 a { text-decoration: none; border-bottom: 1px solid var(--hairline); }
+.item h3 a:hover { border-bottom-color: var(--kernel); }
+
+.item .meta {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.4rem;
+}
+
+.item p { margin: 0; font-size: 1.02rem; }
+
+.item .links {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  margin-top: 0.45rem;
+}
+
+.item .links a { color: var(--kernel); text-decoration: none; margin-right: 1.1rem; }
+.item .links a:hover { text-decoration: underline; }
+
+/* ----- CV ----- */
+.cv-entry { margin-bottom: 2.2rem; }
+
+.cv-entry h3 {
+  font-weight: 600;
+  font-size: 1.15rem;
+  margin: 0;
+}
+
+.cv-entry .org {
+  font-size: 1.02rem;
+  color: var(--ink);
+  margin: 0.1rem 0 0;
+}
+
+.cv-entry .when {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  color: var(--muted);
+  margin: 0.2rem 0 0.6rem;
+}
+
+.cv-entry ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.15rem;
+}
+
+.cv-entry li { margin-bottom: 0.45rem; font-size: 1.0rem; }
+
+.skills dt {
+  font-family: var(--mono);
+  font-size: 0.74rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 0.9rem;
+}
+
+.skills dd { margin: 0.2rem 0 0; font-size: 1.0rem; }
+
+/* ----- contact ----- */
+.hello {
+  font-family: var(--mono);
+  font-size: 0.85rem;
+  display: flex;
+  gap: 1.6rem;
+  flex-wrap: wrap;
+}
+
+.hello a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--kernel); padding-bottom: 1px; }
+.hello a:hover { color: var(--kernel); }
+
+/* ----- footer ----- */
+footer.site {
+  margin-top: 4.5rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--hairline);
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* focus visibility */
+a:focus-visible {
+  outline: 2px solid var(--kernel);
+  outline-offset: 3px;
+  border-radius: 2px;
+}
+
+@media (max-width: 520px) {
+  body { font-size: 1.03rem; }
+  nav.site-nav { gap: 1rem; }
+}

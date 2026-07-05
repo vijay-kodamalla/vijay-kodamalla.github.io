@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CV — Vijay Kodamalla</title>
+<meta name="description" content="CV of Vijay Kodamalla — GPU performance engineering, CUDA kernel optimization, multi-GPU communication, and performance profiling.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="page">
+
+<header class="site">
+  <a class="wordmark" href="index.html">vijay<span>@</span>kodamalla</a>
+  <nav class="site-nav" aria-label="Site">
+    <a href="index.html">about</a>
+    <a href="cv.html" aria-current="page">cv</a>
+    <a href="writing.html">writing</a>
+  </nav>
+</header>
+
+<main>
+  <h1>CV</h1>
+
+  <p><em>Performance engineer focused on end-to-end improvements: low-level GPU kernel optimization, multi-GPU communication, and performance profiling for deploying foundation models and scientific software at scale. Experienced in accelerating computational workloads, debugging hardware-level performance issues, and building efficient runtime components.</em></p>
+
+  <p class="muted" style="font-family: var(--mono); font-size: 0.78rem;">Atlanta, GA · <a href="mailto:vkodamalla3@gatech.edu">vkodamalla3@gatech.edu</a> · <a href="https://github.com/vijay-kodamalla">github</a> · <a href="https://linkedin.com/in/vijaykodamalla">linkedin</a></p>
+
+  <h2 class="eyebrow">Experience</h2>
+
+  <div class="cv-entry">
+    <h3>Graduate Research Assistant — GPU Performance Engineer (MS Thesis)</h3>
+    <p class="org">Georgia Institute of Technology · Computational Combustion Lab</p>
+    <p class="when">Dec 2024 – present · Atlanta, GA</p>
+    <ul>
+      <li>Developed and optimized low-level computational physics kernels in Fortran with OpenACC, porting a large-scale numerical CFD solver to GPUs — 4.4× end-to-end acceleration on 4 NVIDIA H200s over 1113 Intel CPU cores.</li>
+      <li>Profiled and debugged at the system and kernel level with Nsight Systems and Nsight Compute; optimized a critical physics kernel to 57% of A100 FP64 peak via PTX/SASS analysis, reducing warp stalls by 93%.</li>
+      <li>Engineered high-throughput, low-latency GPU-native communication by implementing and tuning CUDA-Aware MPI (HPC-X bundle) over NVLink and InfiniBand.</li>
+      <li>Optimized memory-hierarchy utilization via shared-memory tiling and coalesced access patterns, cutting global memory stalls by 89% and raising compute utilization from 6% to 43%.</li>
+    </ul>
+  </div>
+
+  <h2 class="eyebrow">Projects</h2>
+
+  <div class="cv-entry">
+    <h3>High-performance GEMV kernel for quantized LLM inference</h3>
+    <p class="when">Nov 2025 – present · CUDA, C++ · <a href="https://github.com/vijay-kodamalla/gemv-q4_k-optimization">code</a> · <a href="https://vijay-kodamalla.github.io/gemv-q4_k-optimization/">write-up</a></p>
+    <ul>
+      <li>Engineered a custom Q4_K quantized GEMV kernel for llama.cpp's decode phase, reaching within 11% of NVIDIA's production kernel through iterative optimization and profiling.</li>
+      <li>Analyzed 5+ kernel variants with Nsight tooling; found multi-warp parallelism (4 warps) improved throughput by 30%, while weight-tiling regressed performance via occupancy degradation (31% vs 52%).</li>
+      <li>Discovered and quantified a fundamental memory bottleneck — 60% excess memory sectors from uncoalesced activation loads in quantized dot-product kernels — affecting existing implementations including upstream.</li>
+      <li>Built a flexible kernel dispatch system with C++ template metaprogramming and compile-time specialization for 1–4 output columns.</li>
+    </ul>
+  </div>
+
+  <div class="cv-entry">
+    <h3>Multi-GPU communication benchmarking suite</h3>
+    <p class="when">Feb 2025 – Aug 2025 · CUDA, NCCL, MPI, UCX · <a href="https://github.com/vijay-kodamalla/multi_gpu_comm_suite">code</a></p>
+    <ul>
+      <li>Built a benchmarking suite around an AXPY kernel to profile latency and throughput of collective operations across MPI, NCCL, and UCX — a 35× latency reduction (45 ms → 1.27 ms) at 256M elements.</li>
+      <li>Designed a custom tree-based reduction using shared memory that outperforms standard CUDA-Aware MPI by 4.4×.</li>
+      <li>Analyzed and tuned UCX transport-selection policies for topology-aware communication across InfiniBand, NVLink, and PCIe.</li>
+    </ul>
+  </div>
+
+  <div class="cv-entry">
+    <h3>Video model inference &amp; training optimization</h3>
+    <p class="when">Jun 2025 – Nov 2025 · PyTorch, NVIDIA NeMo, XLA · <a href="https://github.com/vijay-kodamalla/video_classification_hybrid_arch">code</a></p>
+    <ul>
+      <li>Optimized end-to-end execution of a hybrid 3D CNN + Transformer model with mixed precision, XLA compilation, and torch.compile — 3.6× faster training.</li>
+      <li>Achieved 3,389 samples/sec inference at 0.3 ms latency via model optimization in NVIDIA NeMo, establishing production performance baselines.</li>
+      <li>Scaled across GPUs with PyTorch DDP, running strong/weak scaling analysis to maximize utilization.</li>
+    </ul>
+  </div>
+
+  <h2 class="eyebrow">Technical skills</h2>
+
+  <dl class="skills">
+    <dt>Languages</dt>
+    <dd>C/C++, CUDA C/C++, Python, Fortran</dd>
+    <dt>GPU &amp; low-level</dt>
+    <dd>CUDA, Triton, OpenACC, PTX/SASS, kernel fusion, shared memory, quantization, cp.async, TMA</dd>
+    <dt>Systems &amp; HPC</dt>
+    <dd>Linux, MPI, NCCL, UCX, Slurm, NVIDIA HPC-X</dd>
+    <dt>AI/ML &amp; runtimes</dt>
+    <dd>PyTorch (torch.compile, DDP), TensorFlow, XLA, NVIDIA NeMo, llama.cpp</dd>
+    <dt>Performance tools</dt>
+    <dd>Nsight Systems / Nsight Compute, Torch Profiler, CUDA Profiler, roofline modeling</dd>
+    <dt>DevOps &amp; MLOps</dt>
+    <dd>Git, Apptainer (Docker), distributed training</dd>
+  </dl>
+
+  <h2 class="eyebrow">Education</h2>
+
+  <div class="cv-entry">
+    <h3>Georgia Institute of Technology</h3>
+    <p class="org">M.S. in Computational Science and Engineering</p>
+    <p class="when">Aug 2024 – May 2026 · Atlanta, GA</p>
+  </div>
+
+  <div class="cv-entry">
+    <h3>Indian Institute of Technology, Dharwad</h3>
+    <p class="org">B.Tech. in Mechanical, Materials and Aerospace Engineering</p>
+    <p class="when">Aug 2020 – May 2024 · Dharwad, India</p>
+  </div>
+</main>
+
+<footer class="site">
+  <span>Vijay Prabhas Kodamalla · Atlanta, GA</span>
+  <span>profiled, then optimized</span>
+</footer>
+
+</div>
+</body>
+</html>
