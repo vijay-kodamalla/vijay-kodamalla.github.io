@@ -28,6 +28,13 @@
   <p>Notes from the profiler. I write about GPU kernels the way I work on them — start from a baseline, measure, change one thing, measure again.</p>
 
   <div class="item" style="margin-top: 2.4rem;">
+    <h3><a href="writing/llamacpp-quant-kernels-decode.html">Inside llama.cpp's quant kernels: profiling decode, and one misaligned byte</a></h3>
+    <div class="meta">CUDA · quantization · Nsight Compute · Jul 2026</div>
+    <p>Benchmarking llama.cpp's quantized decode kernels by achieved memory bandwidth instead of TFLOPS turns up an anomaly: mxfp4 — the format gpt-oss ships in — runs ~1.4x slower than q4_0 for the same byte budget. The profiler trail leads to a one-line fix that turns out to be impossible, blocked by a 17-byte block layout.</p>
+    <div class="links"><a href="writing/llamacpp-quant-kernels-decode.html">read ↗</a></div>
+  </div>
+
+  <div class="item">
     <h3><a href="https://vijay-kodamalla.github.io/gemv-q4_k-optimization/">Optimizing a Q4_K GEMV kernel for llama.cpp</a></h3>
     <div class="meta">CUDA · quantized inference · Nsight Compute</div>
     <p>The full story of building a quantized GEMV kernel for the LLM decode phase and closing the gap to NVIDIA's production kernel — which optimizations paid off, which ones backfired (and why occupancy explains it), and a memory-coalescing bottleneck hiding in quantized dot-product kernels upstream.</p>
