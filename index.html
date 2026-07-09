@@ -27,16 +27,16 @@
 
   <h1>I make GPUs spend less time <em>waiting</em> and more time computing.</h1>
 
-  <p>Hi! I'm Vijay, a graduate student at Georgia Tech (M.S. in Computational Science &amp; Engineering, class of 2026) working on GPU performance engineering. As a research assistant in the Computational Combustion Lab, I port large-scale CFD solvers to GPUs and optimize them at the kernel level — profiling with Nsight Systems and Compute, reading PTX/SASS when the counters don't add up, and tuning multi-GPU communication over NVLink and InfiniBand.</p>
+  <p>Hi! I'm Vijay, a graduate student at Georgia Tech (M.S. in Computational Science &amp; Engineering, class of 2026) working on GPU performance engineering. I optimize workloads on NVIDIA hardware from the kernel level up — CUDA, memory-hierarchy tuning, and multi-GPU communication — with a profile-first approach: Nsight Systems and Nsight Compute before any code changes, so every optimization is driven by what the hardware is actually doing, not by guesswork. Lately that's meant writing custom CUDA kernels for quantized LLM inference.</p>
 
-  <p>Outside the lab, I write CUDA kernels for LLM inference — most recently a Q4_K quantized GEMV kernel for llama.cpp's decode phase — and I write about what the profiler teaches me along the way. What pulls me in is the gap between what the hardware can do and what the code actually achieves, and closing it one measured step at a time.</p>
+  <p>For my thesis in Georgia Tech's Computational Combustion Lab, I port a large-scale scientific solver to GPUs and optimize it at the kernel level — profiling with Nsight Systems and Compute, reading PTX/SASS when the counters don't add up, and tuning CUDA-aware MPI over NVLink and InfiniBand. Different workload, same discipline: find where the hardware is waiting, and fix it.</p>
 
   <div class="measured" aria-label="Selected measured results">
     <div class="measured-caption">measured, not estimated</div>
 
     <div class="metric">
       <div class="metric-label">
-        <span>CFD solver wall-time · 1113 CPU cores → 4×H200</span>
+        <span>large-scale solver wall-time · 1113 CPU cores → 4×H200</span>
         <span class="value">4.4× faster</span>
       </div>
       <div class="track"><div class="bar before" style="--w:100%"></div></div>
