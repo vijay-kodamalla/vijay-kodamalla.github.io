@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Marlin vs FlashInfer: benchmarking NVFP4 W4A16 on Blackwell SM120 — Vijay Kodamalla</title>
+<meta name="description" content="Benchmarking two NVFP4 W4A16 GEMM kernels on an RTX PRO 6000 Blackwell for SGLang — and two measurement bugs that would have produced the wrong answer.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+
+<header class="site">
+  <a class="wordmark" href="../index.html">vijay<span>@</span>kodamalla</a>
+  <nav class="site-nav" aria-label="Site">
+    <a href="../index.html">about</a>
+    <a href="../cv.html">cv</a>
+    <a href="../writing.html" aria-current="page">writing</a>
+  </nav>
+</header>
+
+<main>
+<article class="post">
+
+  <a class="back-link" href="../writing.html">← writing</a>
+
+  <h1>Marlin vs FlashInfer: benchmarking NVFP4 W4A16 on Blackwell SM120</h1>
+  <div class="post-meta">CUDA · NVFP4 · FlashInfer · CUPTI · August 2026</div>
+
+  <p>SGLang issue #33711 asks a narrow question: dense NVFP4 W4A16 layers have no FlashInfer integration on SM120, and FlashInfer exposes one as <code>mm_bf16_fp4</code>. Should SGLang call it? The maintainer attached a condition — <em>this should only be done if it is faster in many cases; if it is not, we should figure out why first.</em></p>
+
+  <p>I had the hardware for it, so I took the issue. This is what the measurement looked like, including two bugs in my own harness that each would have produced a confidently wrong answer.</p>
+
+  <h2>What runs today</h2>
+
+  <p>The first thing worth establishing is that "no integration" doesn't mean nothing runs. <code>ModelOptNvFp4A16LinearMethod.apply()</code> calls <code>apply_fp4_marlin_linear()</code> unconditionally — no capability branch, no backend selection. Every dense NVFP4 W4A16 layer on SM120 goes through Marlin today.</p>
+
+  <p>That matters because Marlin is an Ampere-generation kernel. Its inner loop issues <code>mma.sync.aligned.m16n8k16</code> with <code>ldmatrix</code> tile loads — sm80 tensor-core programming. It reads 4-bit weights from HBM, unpacks and scales them to bf16 in registers, then multiplies on 16-bit tensor cores. On Blackwell those instructions still execute through backward compatibility, but they never touch the native FP4 path.</p>
+
+  <p>So the real comparison isn't "tuned kernel vs untuned kernel." It's an Ampere-era kernel running in compatibility mode against a Blackwell kernel that FlashInfer's own release notes describe as optimized for SM121, with SM120 needing further work. Neither is a favourite.</p>
+
+  <p>One more thing surfaced while setting up the baseline: SGLang's numerical correctness test for this exact path, <code>test_nvfp4_marlin_dense_matches_dequant_reference</code>, was skip-gated to SM80/SM86/SM90. The kernel every SM120 user hits in production had never been asserted correct on SM120 in CI. It passes — rel_l2 0.0033 against a dequantized-weight reference, inside the test's own 0.04 tolerance — and extending that gate to Blackwell became a <a href="https://github.com/sgl-project/sglang/pull/34327">separate merged PR</a>.</p>
+
+  <h2>Setup</h2>
+
+  <ul>
+    <li><strong>GPU</strong> — RTX PRO 6000 Blackwell Server Edition: SM120, 96 GB GDDR7, 1597 GB/s spec bandwidth</li>
+    <li><strong>Container</strong> — <code>lmsysorg/sglang:v0.5.17</code>, torch 2.11.0+cu130, flashinfer 0.6.15.post1</li>
+    <li><strong>Shapes</strong> — from <code>nvidia/Qwen3.6-27B-NVFP4</code>. Only three layers in that checkpoint are W4A16; attention is FP8 and out of scope.</li>
+    <li><strong>Batch</strong> — M ∈ {1, 4, 8, 16, 32, 64, 128}, the decode range</li>
+    <li><strong>Timing</strong> — <code>bench_gpu_time_with_cupti</code> with CUDA graphs and cold L2, median of many iterations</li>
+  </ul>
+
+  <table>
+    <thead><tr><th>shape</th><th>N</th><th>K</th><th>NVFP4 weights</th></tr></thead>
+    <tbody>
+      <tr><td>gate_up_proj (fused)</td><td>34,816</td><td>5,120</td><td>100.3 MB</td></tr>
+      <tr><td>down_proj</td><td>5,120</td><td>17,408</td><td>50.1 MB</td></tr>
+      <tr><td>lm_head</td><td>248,320</td><td>5,120</td><td>715.2 MB</td></tr>
+    </tbody>
+  </table>
+
+  <p>The cuDNN backend never made it into the comparison. <code>mm_bf16_fp4</code> requires cuDNN ≥ 9.23.1 for that path and the current SGLang release image ships 9.19.0, so the call raises before doing any work. That leaves cute-dsl as the only testable FlashInfer backend.</p>
+
+  <h2>Two bugs that would have produced the wrong answer</h2>
+
+  <p>The first result I got was Marlin at 17.6 µs and 2855 GB/s on <code>down_proj</code> at M=1 — a 3.3× win. It's also physically impossible. The card's bus tops out at 1597 GB/s; nothing can read from HBM at 1.79× the bus width.</p>
+
+  <p>The cause was in the timing harness. <code>bench_gpu_time_with_cupti</code> takes <code>cold_l2_cache=True</code> by default, but it implements that by scanning <code>input_args</code> for GPU tensors and flushing around them. I was passing a zero-argument closure, so it found nothing, printed a warning I skimmed past, and silently disabled the flush. GB202 has roughly 128 MB of L2 and <code>down_proj</code>'s weights are 50 MB — the entire weight matrix stayed resident across iterations. I was benchmarking L2, not HBM.</p>
+
+  <p>Passing the tensors explicitly through <code>input_args</code> fixed it. Marlin went from 17.6 µs to 55.4 µs; FlashInfer barely moved, 57.7 to 67.4. The gap collapsed from 3.3× to 1.22×. Marlin had simply been benefiting more from a warm cache, and the headline number I nearly published was wrong by a factor of three.</p>
+
+  <p>The second bug was in accuracy. FlashInfer was reporting rel_l2 of 0.0178 against Marlin's 0.0033 — 5.5× worse, flat across every shape and every batch size. A constant error like that is a signature: it's a property of the data, not of the kernel.</p>
+
+  <p>My harness was building weights with SGLang's own <code>make_nvfp4_weight_and_ref</code>, which — reading it properly — doesn't quantize anything. It draws the packed FP4 codes from <code>torch.randint</code> and the block scales from an independent <code>torch.randn</code>. Codes and scales are statistically decoupled, and the bf16 reference is built by decoding one against the other. Marlin received exactly those tensors and decoded them exactly. FlashInfer, in my harness, re-quantized the decoded reference — and <code>nvfp4_quantize</code> recomputes each block's scale from the actual data, which for randomly-drawn scales lands somewhere different for most blocks. FlashInfer was being charged for a quantization round-trip Marlin never paid.</p>
+
+  <p>The fix was to start from one real bf16 weight, quantize it once, and hand the two kernels the same packed codes in the two scale layouts they each expect — linear for Marlin, 128×4-swizzled for FlashInfer — with an assertion that the packed codes are byte-identical. FlashInfer's error dropped from 0.0178 to 0.0025, and the conclusion inverted: it isn't less accurate than Marlin, it's <em>more</em> accurate.</p>
+
+  <p>Both bugs share a shape. Neither crashed, neither produced obviously absurd output, and both would have survived review by anyone not re-deriving the numbers. The only reason the first surfaced was a roofline sanity check — is this number physically possible? — and the only reason the second surfaced was noticing that an error which doesn't vary with anything isn't an error the kernel is producing.</p>
+
+  <h2>Results</h2>
+
+  <p>Δ is cute-dsl relative to Marlin; positive means slower.</p>
+
+  <table>
+    <thead><tr><th colspan="6">gate_up_proj — N=34816, K=5120</th></tr>
+    <tr><th>M</th><th>marlin µs</th><th>cute-dsl µs</th><th>Δ</th><th>marlin GB/s</th><th>cute-dsl GB/s</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>98.8</td><td>101.2</td><td>+2.4%</td><td>1015</td><td>991</td></tr>
+      <tr><td>4</td><td>99.0</td><td>102.4</td><td>+3.5%</td><td>1016</td><td>982</td></tr>
+      <tr><td>8</td><td>98.9</td><td>100.1</td><td>+1.2%</td><td>1020</td><td>1008</td></tr>
+      <tr><td>16</td><td>100.4</td><td>100.9</td><td>+0.5%</td><td>1011</td><td>1006</td></tr>
+      <tr><td>32</td><td>101.1</td><td>103.1</td><td>+2.1%</td><td>1018</td><td>997</td></tr>
+      <tr><td>64</td><td>107.0</td><td>113.8</td><td>+6.4%</td><td>985</td><td>926</td></tr>
+      <tr><td>128</td><td>160.4</td><td>159.1</td><td>−0.9%</td><td>689</td><td>695</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead><tr><th colspan="6">down_proj — N=5120, K=17408</th></tr>
+    <tr><th>M</th><th>marlin µs</th><th>cute-dsl µs</th><th>Δ</th><th>marlin GB/s</th><th>cute-dsl GB/s</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>54.7</td><td>65.9</td><td>+20.4%</td><td>918</td><td>762</td></tr>
+      <tr><td>4</td><td>54.8</td><td>66.9</td><td>+22.3%</td><td>919</td><td>752</td></tr>
+      <tr><td>8</td><td>54.9</td><td>68.1</td><td>+24.0%</td><td>919</td><td>741</td></tr>
+      <tr><td>16</td><td>57.0</td><td>69.6</td><td>+22.1%</td><td>893</td><td>731</td></tr>
+      <tr><td>32</td><td>69.4</td><td>74.9</td><td>+8.0%</td><td>743</td><td>688</td></tr>
+      <tr><td>64</td><td>80.9</td><td>82.2</td><td>+1.6%</td><td>655</td><td>645</td></tr>
+      <tr><td>128</td><td>95.3</td><td>107.9</td><td>+13.2%</td><td>586</td><td>518</td></tr>
+    </tbody>
+  </table>
+
+  <table>
+    <thead><tr><th colspan="6">lm_head — N=248320, K=5120</th></tr>
+    <tr><th>M</th><th>marlin µs</th><th>cute-dsl µs</th><th>Δ</th><th>marlin GB/s</th><th>cute-dsl GB/s</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>552.5</td><td>548.9</td><td>−0.7%</td><td>1295</td><td>1304</td></tr>
+      <tr><td>4</td><td>555.9</td><td>550.4</td><td>−1.0%</td><td>1290</td><td>1303</td></tr>
+      <tr><td>8</td><td>559.1</td><td>545.7</td><td>−2.4%</td><td>1286</td><td>1318</td></tr>
+      <tr><td>16</td><td>566.9</td><td>549.6</td><td>−3.0%</td><td>1276</td><td>1316</td></tr>
+      <tr><td>32</td><td>577.2</td><td>558.3</td><td>−3.3%</td><td>1267</td><td>1310</td></tr>
+      <tr><td>64</td><td>598.6</td><td>601.6</td><td>+0.5%</td><td>1249</td><td>1243</td></tr>
+      <tr><td>128</td><td>954.4</td><td>1000.0</td><td>+4.8%</td><td>817</td><td>780</td></tr>
+    </tbody>
+  </table>
+
+  <p>Marlin is faster in 15 of 21 configurations. cute-dsl takes 6, five of which are <code>lm_head</code> at M ≤ 32 — consistent in direction, modest in size at 0.7–3.3%. Marlin's largest margins are on <code>down_proj</code> at low batch, up to 24%.</p>
+
+  <p>On accuracy, cute-dsl is better in all 21: rel_l2 around 0.0025 against Marlin's 0.0033, roughly 23% lower, and flat across the batch range.</p>
+
+  <p>So the answer to the maintainer's question is no, not as a straight replacement — with a caveat that the split is by shape rather than by batch size, which is not what I predicted when I claimed the issue.</p>
+
+  <h2>The number that isn't about either kernel</h2>
+
+  <p>The more interesting result is in the bandwidth columns. On <code>gate_up_proj</code>, both kernels sit around 1015 GB/s — 64% of the card's 1597. On <code>down_proj</code>, 918 GB/s, 58%. On <code>lm_head</code>, 1318 GB/s, 82%.</p>
+
+  <p>This is a regime that should be close to saturated. At M=1 on <code>gate_up_proj</code> you read 100 MB of weights to perform about 100 MFLOP of arithmetic — the timing is essentially bytes divided by bandwidth, and nothing else should matter. The flat µs column from M=1 through M=32 confirms it: adding activation rows costs nothing until M=128, when arithmetic finally starts to bite and both kernels drop to ~690 GB/s together.</p>
+
+  <p>Yet in the flat region, 36% of the memory bus is going unused, and both implementations leave it on the table in the same proportions. Whatever is capping it isn't specific to either kernel.</p>
+
+  <p>I did not chase this to a root cause — that's an Nsight Compute investigation, and it's a different piece of work. But it isn't unique to Blackwell. SGLang issue #22459 profiled the same Marlin W4A16 path for MoE on H20 (SM90) and measured 24% bandwidth utilization against 72% for an FP8 Triton kernel doing twice the byte traffic, attributing the gap to Marlin's dequant pipeline. Two independent measurements, two architectures, same shape of finding.</p>
+
+  <h2>What I'd do differently</h2>
+
+  <p>When I claimed the issue I predicted a clear FlashInfer win at small M with a crossover as M grew, reasoning from NVFP4 weights being 4× smaller than bf16. That reasoning was aimed at the wrong axis: both implementations read the <em>same</em> NVFP4 bytes — the byte counts in the harness are identical to the megabyte — so there was never a bandwidth advantage to be had on either side. The comparison was only ever about which kernel converts the same bytes into results more efficiently, and the answer turned out to depend on the shape, not the batch size.</p>
+
+  <p>The two harness bugs are the more useful lesson. Both were in the measurement rather than the thing being measured, both produced plausible-looking numbers, and both were caught by asking whether the result was physically possible rather than by re-reading the code. A kernel benchmark is a piece of software, and it deserves the same suspicion as the kernel.</p>
+
+  <div class="post-meta" style="margin-top:2.6rem">
+    <a href="https://github.com/sgl-project/sglang/issues/33711">issue #33711 ↗</a> ·
+    <a href="https://github.com/sgl-project/sglang/pull/34327">merged PR #34327 ↗</a>
+  </div>
+
+</article>
+</main>
+
+<footer class="site">
+  <span>Vijay Prabhas Kodamalla · Atlanta, GA</span>
+  <span>profiled, then optimized</span>
+</footer>
+
+</div>
+</body>
+</html>
