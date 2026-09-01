@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Layout algebra in CuTe DSL — Vijay Kodamalla</title>
+<meta name="description" content="Layouts as functions, size and cosize, nested modes, and tiles as views — applied to removing a four-way shared-memory bank conflict from an NVFP4 scale-factor layout on SM120.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../styles.css">
+</head>
+<body>
+<div class="page">
+
+<header class="site">
+  <a class="wordmark" href="../index.html">vijay<span>@</span>kodamalla</a>
+  <nav class="site-nav" aria-label="Site">
+    <a href="../index.html">about</a>
+    <a href="../cv.html">cv</a>
+    <a href="../writing.html" aria-current="page">writing</a>
+  </nav>
+</header>
+
+<main>
+<article class="post">
+
+  <a class="back-link" href="../writing.html">← writing</a>
+
+  <h1>Layout algebra in CuTe DSL</h1>
+  <div class="post-meta">CuTe DSL · CUTLASS · NVFP4 · SM120 · Sep 2026</div>
+
+  <p class="lede">CuTe DSL is often described as a replacement for CUDA C++. It isn't one. It is CUTLASS's Python authoring layer, and it compiles through MLIR and NVVM to the same PTX and SASS, so it does not abstract away the hardware — it shortens the edit-compile-measure cycle.</p>
+
+  <p>Strip the syntax from any serious CuTe kernel optimization and what remains is L2 residency, pipeline synchronization, bank conflicts, wave quantization. The same reasoning I already do in CUDA, one level of abstraction up. Which means most of what I know transfers, and the part that doesn't is layout algebra.</p>
+
+  <p>That is the part worth the time. This post covers layouts as functions, the size/cosize relationship, nested modes, and tiles as views, then applies all four to one concrete optimization: removing a four-way shared-memory bank conflict from a scale-factor layout on SM120.</p>
+
+  <h2>Why layouts are an object</h2>
+
+  <p>In CUDA C++ the index arithmetic is written inline:</p>
+
+<pre><code>float x = A[row * lda + col];</code></pre>
+
+  <p>That is workable as long as the mapping fits in your head. It stops being workable when a kernel has a swizzled tile in shared memory, a fragment distributed across 32 lanes in the order the MMA instruction demands, and a TMA descriptor governing the copy between them. Four coordinate systems are live at once, and index bugs account for a large share of GEMM bugs.</p>
+
+  <p>CuTe makes the mapping a first-class object. Rather than writing the arithmetic, you construct a <code>Layout</code> and then compose, divide, and invert layouts algebraically. The optimization at the end of this post is a change to two integers, with a two-line proof that it costs nothing.</p>
+
+  <h2>Layouts</h2>
+
+  <p>A <code>Layout</code> is a pair of tuples, <code>(Shape, Stride)</code>, denoting a function from a logical coordinate to a memory offset:</p>
+
+  <div class="eq">offset(c) = Σᵢ cᵢ · dᵢ</div>
+
+  <figure>
+    <img src="figures/fig1-layout-as-function.svg" alt="Layout (8,4):(4,1) shown as a dot product of coordinate and stride, with the resulting offsets filled into an 8x4 grid and coordinate (3,2) highlighted at offset 14.">
+    <figcaption>Fig 1 — the layout as a function. Shape and stride, dotted with the coordinate.</figcaption>
+  </figure>
+
+  <p>The shape describes the tensor; the stride describes where it lives. Two layouts with the same shape and different strides are the same logical tensor in two memory arrangements:</p>
+
+  <figure>
+    <img src="figures/fig2-same-shape-different-strides.svg" alt="Shape (4,8) with strides (8,1) versus (1,4), showing row-major and column-major offset grids side by side.">
+    <figcaption>Fig 2 — same shape, different strides. Row-major and column-major are permutations of the same 32 slots.</figcaption>
+  </figure>
+
+  <p>Because CuTe treats a change of memory arrangement as a change of stride, a large fraction of memory-layout optimizations reduce to stride edits. That is the design, not a coincidence.</p>
+
+  <h2>Size and cosize</h2>
+
+  <p>Two quantities characterize a layout. <code>size</code> is the number of logical coordinates, the product of the shape. <code>cosize</code> is the extent of the image, <code>max offset + 1</code>, and follows from pushing every mode to its maximum coordinate:</p>
+
+  <div class="eq">cosize = 1 + Σᵢ (shapeᵢ − 1) · strideᵢ</div>
+
+  <p><code>cosize</code> is a span, not a count of stored addresses. The number of distinct addresses touched is a third quantity, and coincides with <code>cosize</code> only when the layout is a bijection. The useful reading is that <code>cosize</code> gives the size of the buffer required to hold everything the layout can reach, which is what makes it the right thing to check when deciding whether a layout change is safe.</p>
+
+  <table>
+    <thead>
+      <tr><th>Relation</th><th>Interpretation</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>size == cosize</td><td>bijection — packed, nothing wasted or aliased</td></tr>
+      <tr><td>size &lt; cosize</td><td>gaps — a strided view into something larger</td></tr>
+      <tr><td>size &gt; cosize</td><td>aliasing — broadcast, deliberate replication</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Modes and nesting</h2>
+
+  <p>A mode is one component of the shape/stride tuple. Modes nest, and a nested mode is still one mode: <code>((2,4),8)</code> is rank-2, not rank-3, because mode 0 is itself a tuple. It describes a 2D tensor whose first axis, of extent 2 × 4 = 8, has been factored into a pair. Coordinates nest to match, as in <code>((1,3),5)</code>.</p>
+
+  <p>Rank counts top-level modes; depth measures nesting. The reason to factor an axis is that each factor receives its own stride. Hardware decomposes indices constantly — <code>m = m₀ + 32m₁</code> when 32 rows map to the 32 lanes of a warp and <code>m₁</code> indexes the iteration — and factoring is what allows the lane component and the iteration component to be strided independently. A flat axis admits only a single stride.</p>
+
+  <p>A stride of zero denotes broadcast:</p>
+
+<pre><code>((2,4),8):((1,0),2)
+offset((1,3),5) = (1·1 + 3·0) + 5·2 = 11
+
+size   = 2·4·8 = 64
+cosize = 1 + (2−1)·1 + (4−1)·0 + (8−1)·2 = 16</code></pre>
+
+  <p>Four coordinates map to the same address, an aliasing factor of 4: sixteen values stored, sixty-four coordinates reading them. The stride-0 mode contributes nothing to <code>cosize</code> because it cannot reach a new address. This is how CuTe expresses replication, and it is what a block-scaled format requires — one scale factor serving all sixteen elements of its micro-block at no additional memory cost.</p>
+
+  <p>Shape and stride answer different questions, and only the second one enters the arithmetic. The shape states how many coordinates exist; the stride states how far they reach.</p>
+
+  <h2>Tiles as views</h2>
+
+  <p>Consider a 128×64 tile of a matrix with row length N = 6656. One column step is one element; one row step skips an entire matrix row:</p>
+
+<pre><code>(128,64):(6656,1)
+
+size   = 8192
+cosize = 1 + 127·6656 + 63·1 = 845,376</code></pre>
+
+  <p><code>size</code> is smaller than <code>cosize</code> by a factor of 103. More than 99% of the span this layout covers belongs to neighbouring tiles.</p>
+
+  <p>The layout is nonetheless the tile's, not the matrix's. Its shape is <code>(128,64)</code>, so it accepts only coordinates in that range; the matrix layout would be <code>(M,6656):(6656,1)</code>, a different shape entirely. What the tile borrows from its parent is the stride:</p>
+
+<pre><code>       (128,64)      :      (6656,1)
+    the tile's shape      the parent's strides</code></pre>
+
+  <p>That pairing is what a view is, and it is the source of the discrepancy between the two numbers. The shape states what the tile owns; the strides state how it is distributed in the parent.</p>
+
+  <figure>
+    <img src="figures/fig3-tile-is-a-view.svg" alt="A 128x64 tile inside a matrix with row length 6656, showing 64-element contiguous runs separated by 6592 elements belonging to other tiles, and the resulting global and shared memory layouts.">
+    <figcaption>Fig 3 — the global tile is a strided view; its shared-memory destination is a bijection. The difference between the two strides is the copy.</figcaption>
+  </figure>
+
+  <p>A CuTe tensor is a pointer together with a layout:</p>
+
+<pre><code>tile(0,0):  ptr = A,                layout = (128,64):(6656,1)
+tile(0,1):  ptr = A + 64,           layout = (128,64):(6656,1)
+tile(1,0):  ptr = A + 128·6656,     layout = (128,64):(6656,1)</code></pre>
+
+  <p>The layout captures the shape of the access pattern; the pointer selects the tile. Note that <code>tile(i,j)</code> indexes tiles rather than elements: tile <code>(i,j)</code> begins at element <code>(128i, 64j)</code>, so its offset is <code>128i·6656 + 64j</code>, with the tile dimensions supplying the multipliers. Each tile picks up whichever terms its own coordinate leaves nonzero, which is why <code>tile(1,0)</code> shows no contribution from the column term.</p>
+
+  <p>Placing the global and shared layouts side by side:</p>
+
+<pre><code>GMEM:  (128,64):(6656,1)   size 8192, cosize 845,376   view
+SMEM:  (128,64):(64,1)     size 8192, cosize   8,192   bijection</code></pre>
+
+  <p>The shapes are identical and the strides differ. That difference is the copy. A swizzle is a third layout in the same family: same shape, same cosize, still a bijection, permuted strides. Every data movement is a change of layout, and the legal ones preserve cosize.</p>
+
+  <h2>A bank conflict in a scale-factor layout</h2>
+
+  <p>The optimization below is from Colfax Research's <a href="https://research.colfax-intl.com/optimizing-an-nvfp4-blockscaled-gemm-on-rtx-pro-6000-blackwell-gpu-sm120/">SM120 NVFP4 GEMM article</a>. I reconstructed it from first principles as a test of whether the material above had actually landed. It had not, on the first two attempts.</p>
+
+  <p>In NVFP4, every 16 consecutive elements along K share one E4M3 scale byte, so the packed 4-bit weights are accompanied by a smaller tensor of scale factors. Call the A-operand scales SFA. For an A-tile of 128 rows by 64 K-elements, 64 elements along K is four micro-blocks of 16, so each row requires four scale bytes:</p>
+
+  <div class="eq">128 rows × 4 bytes = <span class="rhs">512 bytes</span></div>
+
+  <p>The MMA on SM120 is warp-level: one warp covers 32 rows at a time and repeats four times to reach 128. The row index therefore factors as <code>m = m₀ + 32m₁</code>, giving three modes.</p>
+
+  <table>
+    <thead>
+      <tr><th>Mode</th><th>Extent</th><th>Meaning</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>m₀</td><td>32</td><td>lane within the warp</td></tr>
+      <tr><td>m₁</td><td>4</td><td>pass over the rows, 128 ÷ 32</td></tr>
+      <tr><td>b</td><td>4</td><td>scale byte within the row</td></tr>
+    </tbody>
+  </table>
+
+  <p>Their product is 512, matching the footprint. The distinction between <code>m₀</code> and <code>m₁</code> is the operative one: <code>m₀</code> is spatial, with all 32 values live simultaneously across lanes, while <code>m₁</code> is temporal, with passes occurring in sequence. Two kinds of index with different access characteristics, which is precisely why the row index is factored rather than flat.</p>
+
+  <p>Since the element here is a single byte, the layout offset is already a byte offset. That would not hold for the E2M1 weights, which pack two elements per byte.</p>
+
+  <h3>The original layout</h3>
+
+<pre><code>(32,4):(16,4)   with b at stride 1
+
+byte = 16m₀ + 4m₁ + b</code></pre>
+
+  <p>Each lane holds a private, contiguous 16-byte block; within it <code>m₁</code> selects a 4-byte group and <code>b</code> selects a byte. The nesting is pass-inside-lane.</p>
+
+  <p>Shared memory is organized as 32 banks of 4 bytes, interleaved, so byte address <code>A</code> resides in bank <code>⌊A/4⌋ mod 32</code>. A single instruction serves all 32 lanes in one wavefront only if the lanes address 32 distinct banks. All lanes issue simultaneously at a common <code>m₁</code>, each at its own <code>m₀</code>:</p>
+
+  <div class="eq">bank = ⌊(16m₀ + 4m₁) / 4⌋ mod 32 = <span class="rhs">(4m₀ + m₁) mod 32</span></div>
+
+  <p>The lane stride of 16 bytes is four banks, so the lanes address banks 0, 4, 8, …, 28 and then wrap.</p>
+
+  <figure>
+    <img src="figures/fig4-bank-conflict.svg" alt="Lane-to-bank mapping for both layouts. Under stride 16 the 32 lanes address only 8 banks, with lanes 0, 8, 16 and 24 colliding on bank 0. Under stride 4 each lane addresses its own bank.">
+    <figcaption>Fig 4 — lane-to-bank mapping before and after. Greyed banks are never addressed.</figcaption>
+  </figure>
+
+  <p>Twenty-four of the thirty-two banks are never addressed, and the remaining eight are addressed four times each. Lanes 0, 8, 16 and 24 all fall on bank 0. The result is a four-way conflict: four wavefronts instead of one, on every scale read in the mainloop.</p>
+
+  <h3>The fix</h3>
+
+  <p>Give the mode that varies across lanes a stride of exactly one bank:</p>
+
+<pre><code>(32,4):(4,128)
+
+byte = 4m₀ + 128m₁ + b
+bank = ⌊(4m₀ + 128m₁)/4⌋ mod 32 = (m₀ + 32m₁) mod 32 = m₀</code></pre>
+
+  <p>Lane <code>m₀</code> addresses bank <code>m₀</code>. The pass index drops out of the bank calculation entirely, since <code>32m₁ mod 32 = 0</code> for all <code>m₁</code>, so all four passes are conflict-free by construction rather than on average.</p>
+
+  <p>The stride of 128 is forced rather than chosen. Extent and stride are independent: <code>m₁</code> still takes only four values, and 128 is the distance the address moves when it increments. Once each lane occupies 4 bytes, one pass spans 32 × 4 = 128 bytes, so the next pass must begin at 128 to avoid overlapping. The stride of a mode is the size of what precedes it.</p>
+
+  <h3>Contiguity</h3>
+
+  <p>Lane 0 previously held bytes 0–15 contiguously and now holds bytes 0–3, 128–131, 256–259 and 384–387. The same 16 bytes, no longer adjacent. This costs nothing, because contiguity is only useful along the mode that is read together. At any instant each lane requests a single byte, its own row's scale for the current pass. Lane 0's bytes 1, 2 and 3 are not read by that instruction; they are needed on later passes, by different instructions. Adjacency along the temporal axis is not something the hardware can exploit.</p>
+
+  <table>
+    <thead>
+      <tr><th>Layout</th><th>Contiguous along</th><th>Suited to</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>16m₀ + 4m₁ + b</td><td>m₁,b — a lane's own 16 bytes</td><td>one lane reading 16 bytes at once</td></tr>
+      <tr><td>4m₀ + 128m₁ + b</td><td>m₀ — across lanes</td><td>32 lanes reading one byte each, simultaneously</td></tr>
+    </tbody>
+  </table>
+
+  <figure>
+    <img src="figures/fig5-inverting-the-nesting.svg" alt="The same 512 bytes nested two ways: pass inside lane, where each lane owns 16 contiguous bytes, versus lane inside pass, where each pass spans all 32 lanes in 128 bytes.">
+    <figcaption>Fig 5 — the same 512 bytes, nested two ways. Contiguity moves from the temporal axis to the lane axis.</figcaption>
+  </figure>
+
+  <p>Contiguity is not destroyed but relocated, onto the axis that is traversed in parallel. This is the same rule as coalescing in CUDA C++, where <code>A[tid]</code> outperforms <code>A[tid*16]</code> because consecutive lanes should address consecutive locations. The original layout is <code>A[tid*16]</code> in different notation, which is exactly why I did not recognize it.</p>
+
+  <h3>Why the change is free</h3>
+
+  <p>A stride change is safe only if it permutes bytes within an unchanged footprint. A change in span would alter the TMA transaction size, making it a different copy rather than a reordering:</p>
+
+  <div class="eq">size   = 32 · 4 · 4 = 512   (both layouts)
+
+cosize_before = 1 + 31(16) + 3(4)   + 3 = <span class="rhs">512</span>
+cosize_after  = 1 + 31(4)  + 3(128) + 3 = <span class="rhs">512</span></div>
+
+  <p>Both equal each other and equal <code>size</code>, so both are bijections onto the same 512-byte block. The box shape and transaction size are unchanged and only the ordering within the atom moves. Four times fewer wavefronts at no cost.</p>
+
+  <h2>Summary</h2>
+
+  <p>The general procedure:</p>
+
+  <ul>
+    <li>Write the offset as a dot product of coordinate and stride.</li>
+    <li>Identify the mode that varies across lanes; it alone determines bank behaviour.</li>
+    <li>Give that mode a stride of one bank, 4 bytes.</li>
+    <li>Let the remaining strides follow from the packing constraint.</li>
+    <li>Verify <code>cosize</code> is unchanged and both layouts are bijections.</li>
+  </ul>
+
+  <p>The second step is the one that required rewiring rather than new information. The habitual question from CUDA C++ is whether an access is contiguous. The correct question is which mode it is contiguous along, and whether that is the mode the warp traverses in parallel.</p>
+
+  <h2>Exercises</h2>
+
+  <p>By hand first, then against <code>cute.make_layout</code>.</p>
+
+  <ul>
+    <li><code>(4,8):(8,1)</code> — the offset of <code>(2,5)</code>, and is it row- or column-major?</li>
+    <li><code>(4,8):(1,4)</code> — the offset of <code>(2,5)</code>. Same logical tensor, differing in what?</li>
+    <li><code>((2,4),8):((1,0),2)</code> — <code>size</code>, <code>cosize</code>, aliasing factor, and the number of values physically stored.</li>
+    <li>A 128×64 tile, row-major, in a matrix with N = 6656. Write the layout. Is it a bijection, and what does that imply about the copy it requires?</li>
+    <li>The derivation above: tabulate banks for <code>16m₀ + 4m₁ + b</code>, state the collision rule, count the wavefronts, repeat for <code>4m₀ + 128m₁ + b</code>, and show <code>cosize</code> is unchanged.</li>
+  </ul>
+
+  <h2>Further work</h2>
+
+  <p>Two pieces of the fundamentals are not covered here: composition, meaning how <code>tiled_divide</code> and <code>local_tile</code> derive a tile layout from a matrix layout, which was done by hand above; and TV layouts, the formal description of which lane holds which element of an MMA fragment. The three-mode decomposition used in the bank-conflict example is an informal instance of one.</p>
+
+  <p>The application I want to take this toward is a W4A16 NVFP4 GEMM — 4-bit weights against bf16 activations, at the small-M shapes characteristic of decode. In that regime the kernel is entirely weight-bandwidth-bound, the tensor cores are largely idle, and the determining factor is scheduling: how many CTAs are resident, and whether enough memory requests are in flight to saturate DRAM. That is a good match for a DSL in which tilings and schedules are inexpensive to iterate on.</p>
+
+</article>
+</main>
+
+<footer class="site">
+  <span>Vijay Prabhas Kodamalla · Atlanta, GA</span>
+  <span>profiled, then optimized</span>
+</footer>
+
+</div>
+</body>
+</html>
