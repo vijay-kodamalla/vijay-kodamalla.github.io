@@ -28,6 +28,11 @@
   <p>Notes from the profiler. I write about GPU kernels the way I work on them — start from a baseline, measure, change one thing, measure again.</p>
 
   <div class="item" style="margin-top: 2.4rem;">
+    <h3><a href="writing/sglang-nvfp4-w4a16-sm120.html">Marlin vs FlashInfer: benchmarking NVFP4 W4A16 on Blackwell SM120</a></h3>
+    <div class="meta">CUDA · NVFP4 · FlashInfer · CUPTI · Aug 2026</div>
+    <p>An open SGLang issue asks whether FlashInfer's bf16×fp4 kernel should replace the incumbent Marlin path on consumer Blackwell. Twenty-one configurations later the answer is mostly no — but the more interesting number is that both kernels leave 36% of the memory bus unused in a regime that should be saturated. Also: two bugs in my own harness, each of which produced a confidently wrong answer first.</p>
+    <div class="links"><a href="writing/sglang-nvfp4-w4a16-sm120.html">read ↗</a><a href="https://github.com/sgl-project/sglang/issues/33711">issue ↗</a></div>
+  </div>
     <h3><a href="writing/llamacpp-quant-kernels-decode.html">Inside llama.cpp's quant kernels: profiling decode, and one misaligned byte</a></h3>
     <div class="meta">CUDA · quantization · Nsight Compute · Jul 2026</div>
     <p>Benchmarking llama.cpp's quantized decode kernels by achieved memory bandwidth instead of TFLOPS turns up an anomaly: mxfp4 — the format gpt-oss ships in — runs ~1.4x slower than q4_0 for the same byte budget. The profiler trail leads to a one-line fix that turns out to be impossible, blocked by a 17-byte block layout.</p>
