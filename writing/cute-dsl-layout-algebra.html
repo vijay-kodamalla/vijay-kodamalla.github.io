@@ -246,17 +246,6 @@ cosize_after  = 1 + 31(4)  + 3(128) + 3 = <span class="rhs">512</span></div>
 
   <p>The second step is the one that required rewiring rather than new information. The habitual question from CUDA C++ is whether an access is contiguous. The correct question is which mode it is contiguous along, and whether that is the mode the warp traverses in parallel.</p>
 
-  <h2>Exercises</h2>
-
-  <p>By hand first, then against <code>cute.make_layout</code>.</p>
-
-  <ul>
-    <li><code>(4,8):(8,1)</code> — the offset of <code>(2,5)</code>, and is it row- or column-major?</li>
-    <li><code>(4,8):(1,4)</code> — the offset of <code>(2,5)</code>. Same logical tensor, differing in what?</li>
-    <li><code>((2,4),8):((1,0),2)</code> — <code>size</code>, <code>cosize</code>, aliasing factor, and the number of values physically stored.</li>
-    <li>A 128×64 tile, row-major, in a matrix with N = 6656. Write the layout. Is it a bijection, and what does that imply about the copy it requires?</li>
-    <li>The derivation above: tabulate banks for <code>16m₀ + 4m₁ + b</code>, state the collision rule, count the wavefronts, repeat for <code>4m₀ + 128m₁ + b</code>, and show <code>cosize</code> is unchanged.</li>
-  </ul>
 
   <h2>Further work</h2>
 
