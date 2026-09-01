@@ -94,6 +94,15 @@
     <div class="links"><a href="https://github.com/vijay-kodamalla/LLM-kernels-Lab">code ↗</a></div>
   </div>
 
+  <h2 class="eyebrow">Open-source contributions</h2>
+
+  <div class="item">
+    <h3><a href="https://github.com/sgl-project/sglang/issues/33711">SGLang — NVFP4 W4A16 GEMM on Blackwell SM120</a></h3>
+    <div class="meta">CUDA · FlashInfer · CUTLASS · CUPTI · Aug 2026</div>
+    <p>Assigned an open issue: decide whether FlashInfer's bf16×fp4 kernel should replace the incumbent Marlin path for dense NVFP4 W4A16 layers on SM120. Benchmarked both across 21 configurations on an RTX PRO 6000 Blackwell — three Qwen3.6-27B GEMM shapes, decode batch sizes 1–128, CUPTI timing with CUDA graphs and cold L2, one shared quantization so both kernels read byte-identical weights. Marlin won 15 of 21; FlashInfer's cute-dsl backend was ~23% more accurate in all of them. Both plateau at 57–64% of the card's 1597 GB/s on the MLP shapes and 82% on the output projection — the shape moves that number more than the kernel choice does. The work also established that the Marlin path is numerically correct on SM120, which CI had never asserted; that fix is merged.</p>
+    <div class="links"><a href="https://github.com/sgl-project/sglang/pull/34327">merged PR ↗</a><a href="https://github.com/sgl-project/sglang/issues/33711">benchmark ↗</a></div>
+  </div>
+
   <h2 class="eyebrow">Say hello</h2>
   <div class="hello">
     <a href="mailto:vkodamalla3@gatech.edu">email</a>
