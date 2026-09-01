@@ -32,11 +32,11 @@
   <h2 class="eyebrow">Experience</h2>
 
   <div class="cv-entry">
-    <h3>Graduate Research Assistant — GPU Performance Engineer (MS Thesis)</h3>
+    <h3>Graduate Research Assistant — GPU Performance Engineer</h3>
     <p class="org">Georgia Institute of Technology · Computational Combustion Lab</p>
     <p class="when">Dec 2024 – present · Atlanta, GA</p>
     <ul>
-      <li>Developed and optimized low-level computational physics kernels in Fortran with OpenACC, porting a large-scale numerical CFD solver to GPUs — 4.4× end-to-end acceleration on 4 NVIDIA H200s over 1113 Intel CPU cores.</li>
+      <li>Developed and optimized low-level computational physics kernels with OpenMP and OpenACC, porting a large-scale numerical solver to GPUs — 4.4× end-to-end acceleration on 4 NVIDIA H200s over 1113 Intel CPU cores.</li>
       <li>Profiled and debugged at the system and kernel level with Nsight Systems and Nsight Compute; optimized a critical physics kernel to 57% of A100 FP64 peak via PTX/SASS analysis, reducing warp stalls by 93%.</li>
       <li>Engineered high-throughput, low-latency GPU-native communication by implementing and tuning CUDA-Aware MPI (HPC-X bundle) over NVLink and InfiniBand.</li>
       <li>Optimized memory-hierarchy utilization via shared-memory tiling and coalesced access patterns, cutting global memory stalls by 89% and raising compute utilization from 6% to 43%.</li>
@@ -82,7 +82,7 @@
     <dt>Languages</dt>
     <dd>C/C++, CUDA C/C++, Python, Fortran</dd>
     <dt>GPU &amp; low-level</dt>
-    <dd>CUDA, Triton, OpenACC, PTX/SASS, kernel fusion, shared memory, quantization, cp.async, TMA</dd>
+    <dd>CUDA, Triton, OpenMP, OpenACC, PTX/SASS, kernel fusion, shared memory, quantization, cp.async, TMA</dd>
     <dt>Systems &amp; HPC</dt>
     <dd>Linux, MPI, NCCL, UCX, Slurm, NVIDIA HPC-X</dd>
     <dt>AI/ML &amp; runtimes</dt>
