@@ -27,7 +27,14 @@
 
   <p>Notes from the profiler. I write about GPU kernels the way I work on them — start from a baseline, measure, change one thing, measure again.</p>
 
-  <div class="item" style="margin-top: 2.4rem;">
+    <div class="item" style="margin-top: 2.4rem;">
+    <h3><a href="writing/cute-dsl-layout-algebra.html">Layout algebra in CuTe DSL</a></h3>
+    <div class="meta">CuTe DSL · CUTLASS · NVFP4 · SM120 · Sep 2026</div>
+    <p>CuTe DSL gets described as a replacement for CUDA C++, which it isn't — it compiles to the same SASS, and every optimization in it is still bank conflicts and L2 residency. What doesn't carry over from CUDA is layout algebra. Working notes on layouts as functions, size versus cosize, and why a tile layout borrows its parent's strides, ending with a four-way shared-memory bank conflict removed by changing two integers. I got the derivation wrong twice before it worked.</p>
+    <div class="links"><a href="writing/cute-dsl-layout-algebra.html">read ↗</a></div>
+  </div>
+
+  <div class="item">
     <h3><a href="writing/sglang-nvfp4-w4a16-sm120.html">Marlin vs FlashInfer: benchmarking NVFP4 W4A16 on Blackwell SM120</a></h3>
     <div class="meta">CUDA · NVFP4 · FlashInfer · CUPTI · Aug 2026</div>
     <p>An open SGLang issue asks whether FlashInfer's bf16×fp4 kernel should replace the incumbent Marlin path on consumer Blackwell. Twenty-one configurations later the answer is mostly no — but the more interesting number is that both kernels leave 36% of the memory bus unused in a regime that should be saturated. Also: two bugs in my own harness, each of which produced a confidently wrong answer first.</p>
