@@ -78,11 +78,11 @@
   <h2 class="eyebrow">Selected work</h2>
 
   <div class="item">
-  <h3><a href="writing/sglang-nvfp4-w4a16-sm120.html">NVFP4 W4A16 decode kernels in SGLang</a></h3>
-  <div class="meta">CUDA · NVFP4 · FlashInfer · CUPTI · RTX PRO 6000 · Aug 2026 – present</div>
-  <p>Benchmarking work on an open SGLang issue: does FlashInfer's bf16×fp4 kernel beat the incumbent Marlin path for dense NVFP4 layers on consumer Blackwell? Twenty-one configurations across real Qwen3.6-27B shapes at decode batch sizes, cold L2 and CUDA graphs. Marlin wins most of them — but both kernels leave 36% of the memory bus unused in a regime that should be saturated, and the split turns out to track CTA count rather than batch size. Also surfaced that the production Marlin path had never been correctness-tested on SM120, which became a separate PR.</p>
-  <div class="links"><a href="writing/sglang-nvfp4-w4a16-sm120.html">write-up ↗</a><a href="https://github.com/sgl-project/sglang/issues/33711">issue ↗</a><a href="https://github.com/sgl-project/sglang/pull/34327">PR ↗</a></div>
-</div>
+    <h3><a href="https://github.com/sgl-project/sglang/issues/33711">SGLang — NVFP4 W4A16 GEMM on Blackwell SM120</a></h3>
+    <div class="meta">CUDA · FlashInfer · CUTLASS · CUPTI · Aug 2026</div>
+    <p>Assigned an open issue: decide whether FlashInfer's bf16×fp4 kernel should replace the incumbent Marlin path for dense NVFP4 W4A16 layers on SM120. Benchmarked both across 21 configurations on an RTX PRO 6000 Blackwell — three Qwen3.6-27B GEMM shapes, decode batch sizes 1–128, CUPTI timing with CUDA graphs and cold L2, one shared quantization so both kernels read byte-identical weights. Marlin won 15 of 21; FlashInfer's cute-dsl backend was ~23% more accurate in all of them. Both plateau at 57–64% of the card's 1597 GB/s on the MLP shapes and 82% on the output projection — the shape moves that number more than the kernel choice does. The work also established that the Marlin path is numerically correct on SM120, which CI had never asserted; that fix is merged.</p>
+    <div class="links"><a href="writing/sglang-nvfp4-w4a16-sm120.html">write-up ↗</a><a href="https://github.com/sgl-project/sglang/issues/33711">issue ↗</a><a href="https://github.com/sgl-project/sglang/pull/34327">merged PR ↗</a></div>
+  </div>
 
 <div class="item">
   <h3><a href="https://vijay-kodamalla.github.io/gemv-q4_k-optimization/">Q4_K GEMV kernel for llama.cpp</a></h3>
@@ -104,15 +104,6 @@
   <p>Latency and throughput benchmarks for collective operations across the MPI, NCCL, and UCX stacks, from a baseline AXPY kernel up to multi-node runs — including a custom tree-based reduction that outperforms CUDA-Aware MPI by 4.4× and a 35× latency reduction at 256M elements.</p>
   <div class="links"><a href="https://github.com/vijay-kodamalla/multi_gpu_comm_suite">code ↗</a></div>
 </div>
-
-  <h2 class="eyebrow">Open-source contributions</h2>
-
-  <div class="item">
-    <h3><a href="https://github.com/sgl-project/sglang/issues/33711">SGLang — NVFP4 W4A16 GEMM on Blackwell SM120</a></h3>
-    <div class="meta">CUDA · FlashInfer · CUTLASS · CUPTI · Aug 2026</div>
-    <p>Assigned an open issue: decide whether FlashInfer's bf16×fp4 kernel should replace the incumbent Marlin path for dense NVFP4 W4A16 layers on SM120. Benchmarked both across 21 configurations on an RTX PRO 6000 Blackwell — three Qwen3.6-27B GEMM shapes, decode batch sizes 1–128, CUPTI timing with CUDA graphs and cold L2, one shared quantization so both kernels read byte-identical weights. Marlin won 15 of 21; FlashInfer's cute-dsl backend was ~23% more accurate in all of them. Both plateau at 57–64% of the card's 1597 GB/s on the MLP shapes and 82% on the output projection — the shape moves that number more than the kernel choice does. The work also established that the Marlin path is numerically correct on SM120, which CI had never asserted; that fix is merged.</p>
-    <div class="links"><a href="https://github.com/sgl-project/sglang/pull/34327">merged PR ↗</a><a href="https://github.com/sgl-project/sglang/issues/33711">benchmark ↗</a></div>
-  </div>
 
   <h2 class="eyebrow">Say hello</h2>
   <div class="hello">
