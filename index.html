@@ -27,12 +27,23 @@
 
   <h1>Performance is a first-principles problem. I solve it at the <em>hardware–software boundary</em>.</h1>
 
-  <p>Hi! I'm Vijay, a graduate student at Georgia Tech (M.S. in Computational Science &amp; Engineering, class of 2026) working on GPU performance engineering across two very different workloads: scientific computing solvers and LLM inference. I optimize on NVIDIA hardware from the kernel level up — CUDA, memory-hierarchy tuning, and multi-GPU communication — with a profile-first approach: Nsight Systems and Nsight Compute before any code changes, so every optimization is driven by what the hardware is actually doing, not by guesswork.</p>
+  <p>Hi! I'm Vijay, a graduate student at Georgia Tech (M.S. in Computational Science &amp; Engineering, 2026) working on GPU performance engineering. Most of my recent work is LLM inference: writing and profiling quantized kernels for the decode phase, and benchmarking production kernels inside real serving engines on Blackwell hardware. I take a profile-first approach — Nsight Systems and Nsight Compute before any code changes, so every optimization is driven by what the hardware is actually doing, not by guesswork.</p>
 
-  <p>For my thesis at Georgia Tech, I port a large-scale scientific solver to GPUs and optimize it at the kernel level — profiling, reading PTX/SASS when the counters don't add up, and tuning CUDA-aware MPI over NVLink and InfiniBand. Outside the lab, I write custom CUDA kernels for quantized LLM inference. Different workloads, same first principles — arithmetic intensity, data reuse, memory coalescing, register pressure: find where the hardware is waiting, and fix it.</p>
+  <p>I came to this from the other direction. At Georgia Tech I worked on a large-scale GPGPU scientific software and optimized it at the kernel level — profiling, reading PTX/SASS when the counters didn't add up, and tuning CUDA-aware MPI over NVLink and InfiniBand. Different workloads, same first principles: arithmetic intensity, data reuse, memory coalescing, register pressure. Find where the hardware is waiting, and fix it.</p>
 
   <div class="measured" aria-label="Selected measured results">
     <div class="measured-caption">measured, not estimated</div>
+
+    <div class="metric">
+  <div class="metric-label">
+    <span>Q4_K GEMV decode throughput vs NVIDIA's production kernel</span>
+    <span class="value">gap closed to 11%</span>
+  </div>
+  <div class="track">
+    <div class="bar before" style="--w: 89%"></div>
+    <div class="bar" style="--w: 89%"></div>
+  </div>
+    </div>
 
     <div class="metric">
       <div class="metric-label">
@@ -67,32 +78,32 @@
   <h2 class="eyebrow">Selected work</h2>
 
   <div class="item">
-    <h3><a href="https://github.com/vijay-kodamalla/gemv-q4_k-optimization">Q4_K GEMV kernel for llama.cpp</a></h3>
-    <div class="meta">CUDA · C++ · Nsight Compute · Nov 2025 – present</div>
-    <p>A custom quantized GEMV kernel for the LLM decode phase, iterated to within 11% of NVIDIA's production kernel. Along the way: five profiled kernel variants, a 30% throughput win from 4-warp parallelism, and a memory-coalescing bottleneck that turns out to affect upstream implementations too.</p>
-    <div class="links"><a href="https://github.com/vijay-kodamalla/gemv-q4_k-optimization">code ↗</a><a href="https://vijay-kodamalla.github.io/gemv-q4_k-optimization/">write-up ↗</a></div>
-  </div>
+  <h3><a href="writing/sglang-nvfp4-w4a16-sm120.html">NVFP4 W4A16 decode kernels in SGLang</a></h3>
+  <div class="meta">CUDA · NVFP4 · FlashInfer · CUPTI · RTX PRO 6000 · Aug 2026 – present</div>
+  <p>Benchmarking work on an open SGLang issue: does FlashInfer's bf16×fp4 kernel beat the incumbent Marlin path for dense NVFP4 layers on consumer Blackwell? Twenty-one configurations across real Qwen3.6-27B shapes at decode batch sizes, cold L2 and CUDA graphs. Marlin wins most of them — but both kernels leave 36% of the memory bus unused in a regime that should be saturated, and the split turns out to track CTA count rather than batch size. Also surfaced that the production Marlin path had never been correctness-tested on SM120, which became a separate PR.</p>
+  <div class="links"><a href="writing/sglang-nvfp4-w4a16-sm120.html">write-up ↗</a><a href="https://github.com/sgl-project/sglang/issues/33711">issue ↗</a><a href="https://github.com/sgl-project/sglang/pull/34327">PR ↗</a></div>
+</div>
 
-  <div class="item">
-    <h3><a href="https://github.com/vijay-kodamalla/multi_gpu_comm_suite">Multi-GPU communication benchmarking suite</a></h3>
-    <div class="meta">CUDA · NCCL · MPI · UCX · Feb – Aug 2025</div>
-    <p>Latency and throughput benchmarks for collective operations across the MPI, NCCL, and UCX stacks, from a baseline AXPY kernel up to multi-node runs — including a custom tree-based reduction that outperforms CUDA-Aware MPI by 4.4× and a 35× latency reduction at 256M elements.</p>
-    <div class="links"><a href="https://github.com/vijay-kodamalla/multi_gpu_comm_suite">code ↗</a></div>
-  </div>
+<div class="item">
+  <h3><a href="https://vijay-kodamalla.github.io/gemv-q4_k-optimization/">Q4_K GEMV kernel for llama.cpp</a></h3>
+  <div class="meta">CUDA · C++ · Nsight Compute · Nov 2025 – present</div>
+  <p>A custom quantized GEMV kernel for the LLM decode phase, iterated to within 11% of NVIDIA's production kernel. Along the way: five profiled kernel variants, a 30% throughput win from 4-warp parallelism, and a memory-coalescing bottleneck that turns out to affect upstream implementations too.</p>
+  <div class="links"><a href="https://vijay-kodamalla.github.io/gemv-q4_k-optimization/">write-up ↗</a><a href="https://github.com/vijay-kodamalla/gemv-q4_k-optimization">code ↗</a></div>
+</div>
 
-  <div class="item">
-    <h3><a href="https://github.com/vijay-kodamalla/video_classification_hybrid_arch">Video model training &amp; inference optimization</a></h3>
-    <div class="meta">PyTorch · NVIDIA NeMo · XLA · Jun – Nov 2025</div>
-    <p>End-to-end optimization of a hybrid 3D CNN + Transformer: mixed precision, torch.compile, and XLA for a 3.6× training speedup, plus NeMo-based inference tuning to 3,389 samples/sec at 0.3 ms latency, with strong/weak scaling analysis under PyTorch DDP.</p>
-    <div class="links"><a href="https://github.com/vijay-kodamalla/video_classification_hybrid_arch">code ↗</a></div>
-  </div>
+<div class="item">
+  <h3><a href="https://github.com/vijay-kodamalla/LLM-kernels-Lab">LLM kernels lab</a></h3>
+  <div class="meta">CUDA · CuTe DSL · Nsight Compute · ongoing</div>
+  <p>A running study of state-of-the-art LLM kernels — reading them, profiling them, and cataloguing the optimization strategies behind each. Recent findings: mxfp4, the format gpt-oss ships in, decodes ~1.4× slower than q4_0 for the same byte budget in llama.cpp, blocked from the obvious fix by a 17-byte block layout.</p>
+  <div class="links"><a href="writing/llamacpp-quant-kernels-decode.html">write-up ↗</a><a href="https://github.com/vijay-kodamalla/LLM-kernels-Lab">code ↗</a></div>
+</div>
 
-  <div class="item">
-    <h3><a href="https://github.com/vijay-kodamalla/LLM-kernels-Lab">LLM kernels lab</a></h3>
-    <div class="meta">CUDA · Nsight Compute · ongoing</div>
-    <p>A running study of state-of-the-art LLM kernels — reading them, profiling them, and cataloguing the optimization strategies behind each one with a profile-driven approach.</p>
-    <div class="links"><a href="https://github.com/vijay-kodamalla/LLM-kernels-Lab">code ↗</a></div>
-  </div>
+<div class="item">
+  <h3><a href="https://github.com/vijay-kodamalla/multi_gpu_comm_suite">Multi-GPU communication benchmarking suite</a></h3>
+  <div class="meta">CUDA · NCCL · MPI · UCX · Feb – Aug 2025</div>
+  <p>Latency and throughput benchmarks for collective operations across the MPI, NCCL, and UCX stacks, from a baseline AXPY kernel up to multi-node runs — including a custom tree-based reduction that outperforms CUDA-Aware MPI by 4.4× and a 35× latency reduction at 256M elements.</p>
+  <div class="links"><a href="https://github.com/vijay-kodamalla/multi_gpu_comm_suite">code ↗</a></div>
+</div>
 
   <h2 class="eyebrow">Open-source contributions</h2>
 
