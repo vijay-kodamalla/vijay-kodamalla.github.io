@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vijay Kodamalla — GPU Performance Engineering</title>
-<meta name="description" content="Vijay Kodamalla — graduate student at Georgia Tech working on GPU performance engineering: CUDA kernels, multi-GPU communication, and profiling-driven optimization.">
+<title>Vijay Kodamalla — Inference Performance Engineering</title>
+<meta name="description" content="Vijay Kodamalla — inference performance engineer working across silicon: kernels and runtimes for LLMs and diffusion models on NVIDIA GPUs and AWS Trainium2.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -27,22 +27,46 @@
 
   <h1>Performance is a first-principles problem. I solve it at the <em>hardware–software boundary</em>.</h1>
 
-  <p>Hi! I'm Vijay, a graduate student at Georgia Tech (M.S. in Computational Science &amp; Engineering, 2026) working on GPU performance engineering. Most of my recent work is LLM inference: writing and profiling quantized kernels for the decode phase, and benchmarking production kernels inside real serving engines on Blackwell hardware. I take a profile-first approach — Nsight Systems and Nsight Compute before any code changes, so every optimization is driven by what the hardware is actually doing, not by guesswork.</p>
+  <p class="now"><span class="now-dot" aria-hidden="true"></span><span>currently · diffusion inference on AWS Trainium2 at <a href="https://www.yottalabs.ai/">Yotta Labs</a></span></p>
 
-  <p>I came to this from the other direction. At Georgia Tech I worked on a large-scale GPGPU scientific software and optimized it at the kernel level — profiling, reading PTX/SASS when the counters didn't add up, and tuning CUDA-aware MPI over NVLink and InfiniBand. Different workloads, same first principles: arithmetic intensity, data reuse, memory coalescing, register pressure. Find where the hardware is waiting, and fix it.</p>
+  <p>Hi! I'm Vijay, an inference performance engineer. I recently finished my M.S. in Computational Science &amp; Engineering at Georgia Tech, and I now work at Yotta Labs on <a href="https://github.com/ai-decentralized/Difflet">Difflet</a>, an open-source engine for serving diffusion transformers (FLUX, Wan text-to-video) on AWS Trainium2. I take a profile-first approach: measure before changing any code, so every optimization is driven by what the hardware is actually doing, not by guesswork.</p>
+
+  <p>My path here has run through three kinds of workload. It started in HPC: at Georgia Tech I optimized a large-scale GPGPU scientific code at the kernel level, reading PTX/SASS when the counters didn't add up and tuning CUDA-aware MPI over NVLink and InfiniBand. Then LLM inference on GPUs: quantized decode kernels for llama.cpp, and benchmarking production kernels inside SGLang on Blackwell. Now diffusion inference on a chip with no warps at all. The hardware changes; the first principles don't: arithmetic intensity, data reuse, memory movement, and finding where the machine is waiting.</p>
+
+  <ul class="silicon" aria-label="Hardware I have worked on">
+    <li>AWS Trainium2</li>
+    <li>NVIDIA Blackwell SM120</li>
+    <li>Hopper H200</li>
+    <li>Ampere A100</li>
+  </ul>
 
   <div class="measured" aria-label="Selected measured results">
     <div class="measured-caption">measured, not estimated</div>
 
     <div class="metric">
-  <div class="metric-label">
-    <span>Q4_K GEMV decode throughput vs NVIDIA's production kernel</span>
-    <span class="value">gap closed to 11%</span>
-  </div>
-  <div class="track">
-    <div class="bar before" style="--w: 89%"></div>
-    <div class="bar" style="--w: 89%"></div>
-  </div>
+      <div class="metric-label">
+        <span>Difflet cold compile · FLUX.1-dev · Trainium2</span>
+        <span class="value">20 → 4.7 min</span>
+      </div>
+      <div class="track"><div class="bar before" style="--w:100%"></div></div>
+      <div class="track" style="margin-top:3px"><div class="bar" style="--w:23.5%; animation-delay:.15s"></div></div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">
+        <span>Difflet per-step latency · Wan 2.2 · TP4 · Trainium2</span>
+        <span class="value">−23%</span>
+      </div>
+      <div class="track"><div class="bar before" style="--w:100%; animation-delay:.15s"></div></div>
+      <div class="track" style="margin-top:3px"><div class="bar" style="--w:77%; animation-delay:.3s"></div></div>
+    </div>
+
+    <div class="metric">
+      <div class="metric-label">
+        <span>Q4_K GEMV decode throughput vs NVIDIA's production kernel</span>
+        <span class="value">gap closed to 11%</span>
+      </div>
+      <div class="track"><div class="bar" style="--w:89%; animation-delay:.45s"></div></div>
     </div>
 
     <div class="metric">
@@ -50,32 +74,30 @@
         <span>large-scale solver wall-time · 1113 CPU cores → 4×H200</span>
         <span class="value">4.4× faster</span>
       </div>
-      <div class="track"><div class="bar before" style="--w:100%"></div></div>
-      <div class="track" style="margin-top:3px"><div class="bar" style="--w:23%; animation-delay:.15s"></div></div>
+      <div class="track"><div class="bar before" style="--w:100%; animation-delay:.45s"></div></div>
+      <div class="track" style="margin-top:3px"><div class="bar" style="--w:23%; animation-delay:.6s"></div></div>
     </div>
 
     <div class="metric">
       <div class="metric-label">
-        <span>warp stalls in critical physics kernel</span>
+        <span>warp stalls in critical physics kernel · A100</span>
         <span class="value">−93%</span>
       </div>
-      <div class="track"><div class="bar before" style="--w:100%; animation-delay:.15s"></div></div>
-      <div class="track" style="margin-top:3px"><div class="bar" style="--w:7%; animation-delay:.3s"></div></div>
+      <div class="track"><div class="bar before" style="--w:100%; animation-delay:.6s"></div></div>
+      <div class="track" style="margin-top:3px"><div class="bar" style="--w:7%; animation-delay:.75s"></div></div>
     </div>
 
-    <div class="metric">
-      <div class="metric-label">
-        <span>SM compute utilization after memory-hierarchy work</span>
-        <span class="value">6% → 43%</span>
-      </div>
-      <div class="track"><div class="bar before" style="--w:6%; animation-delay:.45s"></div></div>
-      <div class="track" style="margin-top:3px"><div class="bar" style="--w:43%; animation-delay:.6s"></div></div>
-    </div>
-
-    <div class="measured-footnote">amber = before · green = after · numbers from Nsight Systems / Nsight Compute profiles</div>
+    <div class="measured-footnote">amber = before · green = after · numbers from profiler traces and wall-clock benchmarks</div>
   </div>
 
-  <h2 class="eyebrow">Selected work</h2>
+  <h2 class="eyebrow">Open source</h2>
+
+  <div class="item">
+    <h3><a href="https://github.com/ai-decentralized/Difflet">Difflet — diffusion inference on AWS Trainium2</a></h3>
+    <div class="meta">PyTorch · torch.compile · Neuron SDK · Sep 2026 – present · core contributor</div>
+    <p>An open-source engine for running diffusion transformers on Trainium2, from one CLI to an OpenAI-compatible server. I built its PyTorch-native backend (TorchNeuron, <code>torch.compile</code>) alongside the existing XLA/AoT path and brought up Wan 2.1/2.2 (14B text-to-video) and FLUX.1-dev (12B text-to-image) end to end: per-rank sharded checkpoint loading, per-block compilation, and a multi-process <code>torchrun</code> runtime. On top of that sit tensor, sequence, context (Ulysses, and ring attention with log-sum-exp merging) and data parallelism, plus TeaCache step skipping. Against the AoT backend, cold compile dropped 4.3× and per-step latency 23%, while meeting fp32-reference accuracy gates.</p>
+    <div class="links"><a href="https://github.com/ai-decentralized/Difflet">code ↗</a></div>
+  </div>
 
   <div class="item">
     <h3><a href="https://github.com/sgl-project/sglang/issues/33711">SGLang — NVFP4 W4A16 GEMM on Blackwell SM120</a></h3>
@@ -83,6 +105,8 @@
     <p>Assigned an open issue: decide whether FlashInfer's bf16×fp4 kernel should replace the incumbent Marlin path for dense NVFP4 W4A16 layers on SM120. Benchmarked both across 21 configurations on an RTX PRO 6000 Blackwell — three Qwen3.6-27B GEMM shapes, decode batch sizes 1–128, CUPTI timing with CUDA graphs and cold L2, one shared quantization so both kernels read byte-identical weights. Marlin won 15 of 21; FlashInfer's cute-dsl backend was ~23% more accurate in all of them. Both plateau at 57–64% of the card's 1597 GB/s on the MLP shapes and 82% on the output projection — the shape moves that number more than the kernel choice does. The work also established that the Marlin path is numerically correct on SM120, which CI had never asserted; that fix is merged.</p>
     <div class="links"><a href="writing/sglang-nvfp4-w4a16-sm120.html">write-up ↗</a><a href="https://github.com/sgl-project/sglang/issues/33711">issue ↗</a><a href="https://github.com/sgl-project/sglang/pull/34327">merged PR ↗</a></div>
   </div>
+
+  <h2 class="eyebrow">Projects</h2>
 
 <div class="item">
   <h3><a href="https://vijay-kodamalla.github.io/gemv-q4_k-optimization/">Q4_K GEMV kernel for llama.cpp</a></h3>
@@ -107,7 +131,7 @@
 
   <h2 class="eyebrow">Say hello</h2>
   <div class="hello">
-    <a href="mailto:vkodamalla3@gatech.edu">email</a>
+    <a href="mailto:PrabhaKodamalla@gmail.com">email</a>
     <a href="https://github.com/vijay-kodamalla">github</a>
     <a href="https://linkedin.com/in/vijaykodamalla">linkedin</a>
   </div>

@@ -153,6 +153,59 @@ strong { font-weight: 600; }
 
 .muted { color: var(--muted); }
 
+/* ----- "currently" line ----- */
+.now {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin: 0 0 1.3rem;
+}
+
+.now a { color: var(--ink); }
+
+.now-dot {
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--kernel);
+  box-shadow: 0 0 0 3px rgba(15, 122, 78, 0.15);
+}
+
+/* ----- silicon chips ----- */
+.silicon {
+  list-style: none;
+  padding: 0;
+  margin: 1.4rem 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  clear: both;
+}
+
+.silicon li {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.03em;
+  color: var(--ink);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--kernel);
+  border-radius: 3px;
+  background: #fdfdfc;
+  padding: 0.25rem 0.6rem;
+}
+
+.item code {
+  font-family: var(--mono);
+  font-size: 0.85em;
+  background: #eef0ec;
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+}
+
 /* ----- signature: measured strip (profiler bars) ----- */
 .measured {
   border: 1px solid var(--hairline);
