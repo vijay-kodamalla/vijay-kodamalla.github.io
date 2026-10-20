@@ -93,9 +93,9 @@
   <h2 class="eyebrow">Open source</h2>
 
   <div class="item">
-    <h3><a href="https://github.com/ai-decentralized/Difflet">Difflet — diffusion inference on AWS Trainium2</a></h3>
+    <h3><a href="https://github.com/ai-decentralized/Difflet">Difflet — multi-backend diffusion inference engine</a></h3>
     <div class="meta">PyTorch · torch.compile · Neuron SDK · Sep 2026 – present · core contributor</div>
-    <p>An open-source engine for running diffusion transformers on Trainium2, from one CLI to an OpenAI-compatible server. I built its PyTorch-native backend (TorchNeuron, <code>torch.compile</code>) alongside the existing XLA/AoT path and brought up Wan 2.1/2.2 (14B text-to-video) and FLUX.1-dev (12B text-to-image) end to end: per-rank sharded checkpoint loading, per-block compilation, and a multi-process <code>torchrun</code> runtime. On top of that sit tensor, sequence, context (Ulysses, and ring attention with log-sum-exp merging) and data parallelism, plus TeaCache step skipping. Against the AoT backend, cold compile dropped 4.3× and per-step latency 23%, while meeting fp32-reference accuracy gates.</p>
+    <p>An open-source, multi-backend engine for running diffusion transformers, with Trainium2 as the primary target, from one CLI to an OpenAI-compatible server. I built its PyTorch-native backend (TorchNeuron, <code>torch.compile</code>) alongside the existing XLA/AoT path and brought up Wan 2.1/2.2 (14B text-to-video) and FLUX.1-dev (12B text-to-image) end to end: per-rank sharded checkpoint loading, per-block compilation, and a multi-process <code>torchrun</code> runtime. On top of that sit tensor, sequence, context (Ulysses, and ring attention with log-sum-exp merging) and data parallelism, plus TeaCache step skipping. Against the AoT backend, cold compile dropped 4.3× and per-step latency 23%, while meeting fp32-reference accuracy gates.</p>
     <div class="links"><a href="https://github.com/ai-decentralized/Difflet">code ↗</a></div>
   </div>
 
