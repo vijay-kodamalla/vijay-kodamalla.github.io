@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CV — Vijay Kodamalla</title>
-<meta name="description" content="CV of Vijay Kodamalla — GPU performance engineering, CUDA kernel optimization, multi-GPU communication, and performance profiling.">
+<meta name="description" content="CV of Vijay Kodamalla — inference performance engineering across NVIDIA GPUs and AWS Trainium2: kernels, distributed inference runtimes, and profiling for LLMs and diffusion models.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400;1,6..72,500&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -25,21 +25,48 @@
 <main>
   <h1>CV</h1>
 
-  <p><em>Performance engineer focused on end-to-end improvements: low-level GPU kernel optimization, multi-GPU communication, and performance profiling for deploying foundation models and scientific software at scale. Experienced in accelerating computational workloads, debugging hardware-level performance issues, and building efficient runtime components.</em></p>
+  <p><em>Performance engineer focused on end-to-end inference improvements, specializing in low-level kernel optimizations across NVIDIA GPUs and AWS Trainium, multi-device communication, and performance profiling to deploy LLMs and diffusion models at scale. Proven expertise in accelerating inference workloads, debugging hardware-level performance issues, and building efficient runtime components.</em></p>
 
-  <p class="muted" style="font-family: var(--mono); font-size: 0.78rem;">Atlanta, GA · <a href="mailto:vkodamalla3@gatech.edu">vkodamalla3@gatech.edu</a> · <a href="https://github.com/vijay-kodamalla">github</a> · <a href="https://linkedin.com/in/vijaykodamalla">linkedin</a></p>
+  <p class="muted" style="font-family: var(--mono); font-size: 0.78rem;">Atlanta, GA · <a href="mailto:PrabhaKodamalla@gmail.com">PrabhaKodamalla@gmail.com</a> · <a href="https://github.com/vijay-kodamalla">github</a> · <a href="https://linkedin.com/in/vijaykodamalla">linkedin</a></p>
 
   <h2 class="eyebrow">Experience</h2>
+
+  <div class="cv-entry">
+    <h3>GPU Performance Engineering Intern — Diffusion Inference</h3>
+    <p class="org">Yotta Labs</p>
+    <p class="when">Sep 2026 – present · Remote</p>
+    <ul>
+      <li>Built a PyTorch-native inference backend (TorchNeuron, torch.compile) for <a href="https://github.com/ai-decentralized/Difflet">Difflet</a>, Yotta Labs' diffusion inference engine on AWS Trainium2, alongside its existing XLA/AoT backend; brought up Wan 2.1/2.2 (14B text-to-video) and FLUX.1-dev (12B text-to-image) end to end — sharded checkpoint loading, per-block compilation, a multi-process torchrun runtime, and batch serving.</li>
+      <li>Implemented tensor, sequence, context (Ulysses; ring attention with log-sum-exp merging) and data parallelism plus TeaCache step skipping; cut cold compile time 4.3× (FLUX: 20 → 4.7 min) and per-step latency 23% (Wan 2.2, TP4) against the XLA/AoT backend while meeting fp32-reference accuracy gates.</li>
+    </ul>
+  </div>
 
   <div class="cv-entry">
     <h3>Graduate Research Assistant — GPU Performance Engineer</h3>
     <p class="org">Georgia Institute of Technology · Computational Combustion Lab</p>
     <p class="when">Dec 2024 – Aug 2026 · Atlanta, GA</p>
     <ul>
-      <li>Developed and optimized low-level computational physics kernels with OpenMP and OpenACC, porting a large-scale numerical solver to GPUs — 4.4× end-to-end acceleration on 4 NVIDIA H200s over 1113 Intel CPU cores.</li>
-      <li>Profiled and debugged at the system and kernel level with Nsight Systems and Nsight Compute; optimized a critical physics kernel to 57% of A100 FP64 peak via PTX/SASS analysis, reducing warp stalls by 93%.</li>
-      <li>Engineered high-throughput, low-latency GPU-native communication by implementing and tuning CUDA-Aware MPI (HPC-X bundle) over NVLink and InfiniBand.</li>
-      <li>Optimized memory-hierarchy utilization via shared-memory tiling and coalesced access patterns, cutting global memory stalls by 89% and raising compute utilization from 6% to 43%.</li>
+      <li>Ported a large-scale scientific solver to GPUs (Fortran, OpenACC) — 4.4× end-to-end speedup on 4 NVIDIA H200s over 1,113 Intel CPU cores.</li>
+      <li>Optimized a critical kernel to 57% of A100 FP64 peak via Nsight and PTX/SASS analysis, cutting warp stalls 93%; shared-memory tiling and coalescing cut memory stalls 89% and raised compute utilization from 6% to 43%.</li>
+      <li>Tuned CUDA-Aware MPI (HPC-X) over NVLink and InfiniBand for low-latency multi-GPU, multi-node communication.</li>
+    </ul>
+  </div>
+
+  <h2 class="eyebrow">Open source</h2>
+
+  <div class="cv-entry">
+    <h3>SGLang — NVFP4 W4A16 GEMM on Blackwell SM120</h3>
+    <p class="when">Aug 2026 · FlashInfer, CUTLASS, CUPTI · <a href="https://github.com/sgl-project/sglang/pull/34327">merged PR</a> · <a href="writing/sglang-nvfp4-w4a16-sm120.html">write-up</a></p>
+    <ul>
+      <li>Benchmarked FlashInfer vs. Marlin across 21 configurations on Blackwell SM120; merged the first SM120 correctness test for the Marlin path upstream.</li>
+    </ul>
+  </div>
+
+  <div class="cv-entry">
+    <h3>Difflet — diffusion inference engine for AWS Trainium2</h3>
+    <p class="when">Sep 2026 – present · PyTorch, Neuron SDK · <a href="https://github.com/ai-decentralized/Difflet">code</a></p>
+    <ul>
+      <li>Core contributor: authored the TorchNeuron backend and the multi-axis parallelism layer.</li>
     </ul>
   </div>
 
@@ -66,31 +93,21 @@
     </ul>
   </div>
 
-  <div class="cv-entry">
-    <h3>Video model inference &amp; training optimization</h3>
-    <p class="when">Jun 2025 – Nov 2025 · PyTorch, NVIDIA NeMo, XLA · <a href="https://github.com/vijay-kodamalla/video_classification_hybrid_arch">code</a></p>
-    <ul>
-      <li>Optimized end-to-end execution of a hybrid 3D CNN + Transformer model with mixed precision, XLA compilation, and torch.compile — 3.6× faster training.</li>
-      <li>Achieved 3,389 samples/sec inference at 0.3 ms latency via model optimization in NVIDIA NeMo, establishing production performance baselines.</li>
-      <li>Scaled across GPUs with PyTorch DDP, running strong/weak scaling analysis to maximize utilization.</li>
-    </ul>
-  </div>
-
   <h2 class="eyebrow">Technical skills</h2>
 
   <dl class="skills">
     <dt>Languages</dt>
-    <dd>C/C++, CUDA C/C++, Python, Fortran</dd>
-    <dt>GPU &amp; low-level</dt>
-    <dd>CUDA, Triton, OpenMP, OpenACC, PTX/SASS, kernel fusion, shared memory, quantization, cp.async, TMA</dd>
-    <dt>Systems &amp; HPC</dt>
-    <dd>Linux, MPI, NCCL, UCX, Slurm, NVIDIA HPC-X</dd>
-    <dt>AI/ML &amp; runtimes</dt>
-    <dd>PyTorch (torch.compile, DDP), TensorFlow, XLA, NVIDIA NeMo, llama.cpp</dd>
-    <dt>Performance tools</dt>
-    <dd>Nsight Systems / Nsight Compute, Torch Profiler, CUDA Profiler, roofline modeling</dd>
-    <dt>DevOps &amp; MLOps</dt>
-    <dd>Git, Apptainer (Docker), distributed training</dd>
+    <dd>Python, C/C++, CUDA C/C++, Fortran</dd>
+    <dt>Kernels</dt>
+    <dd>CUDA, NKI, Triton, CUTLASS/CuTe DSL, PTX/SASS, TMA, cp.async, kernel fusion, quantization (NVFP4, Q4_K)</dd>
+    <dt>Hardware</dt>
+    <dd>AWS Trainium2 (trn2), NVIDIA Blackwell (SM120), Hopper (H200), Ampere (A100)</dd>
+    <dt>Inference &amp; compilers</dt>
+    <dd>Difflet, SGLang, vLLM-Omni, llama.cpp, FlashInfer, torch.compile, TorchNeuron, Neuron SDK, XLA/AoT</dd>
+    <dt>Models &amp; parallelism</dt>
+    <dd>Diffusion (Wan 2.x, FLUX.1), LLMs, linear attention; tensor, sequence, context (Ulysses, ring) and data parallelism</dd>
+    <dt>Systems &amp; tools</dt>
+    <dd>torchrun, NCCL, MPI, UCX, HPC-X, Slurm, Docker, Nsight Systems/Compute, CUPTI, Torch Profiler</dd>
   </dl>
 
   <h2 class="eyebrow">Education</h2>
