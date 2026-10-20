@@ -38,6 +38,7 @@
     <ul>
       <li>Built a PyTorch-native inference backend (TorchNeuron, torch.compile) for <a href="https://github.com/ai-decentralized/Difflet">Difflet</a>, Yotta Labs' diffusion inference engine on AWS Trainium2, alongside its existing XLA/AoT backend; brought up Wan 2.1/2.2 (14B text-to-video) and FLUX.1-dev (12B text-to-image) end to end — sharded checkpoint loading, per-block compilation, a multi-process torchrun runtime, and batch serving.</li>
       <li>Implemented tensor, sequence, context (Ulysses; ring attention with log-sum-exp merging) and data parallelism plus TeaCache step skipping; cut cold compile time 4.3× (FLUX: 20 → 4.7 min) and per-step latency 23% (Wan 2.2, TP4) against the XLA/AoT backend while meeting fp32-reference accuracy gates.</li>
+      <li>Built NKI kernels for Gated Linear Attention (GLA) on Trainium2, porting FLA's chunkwise forward pass into four kernels (gate cumsum, chunk-state recurrence, intra-chunk scores with two-level sub-chunking, output projection) mapped onto the Tensor Engine with numerically stable per-channel decay factoring; validated through 162 simulator and on-hardware tests against an fp64 reference, as the foundation for a Kimi Delta Attention (KDA) kernel.</li>   
     </ul>
   </div>
 
@@ -105,7 +106,7 @@
     <dt>Inference &amp; compilers</dt>
     <dd>Difflet, SGLang, vLLM-Omni, llama.cpp, FlashInfer, torch.compile, TorchNeuron, Neuron SDK, XLA/AoT</dd>
     <dt>Models &amp; parallelism</dt>
-    <dd>Diffusion (Wan 2.x, FLUX.1), LLMs, linear attention; tensor, sequence, context (Ulysses, ring) and data parallelism</dd>
+    <dd>Diffusion (Wan 2.x, FLUX.1), LLMs, linear attention(GLA, KDA); tensor, sequence, context (Ulysses, ring) and data parallelism</dd>
     <dt>Systems &amp; tools</dt>
     <dd>torchrun, NCCL, MPI, UCX, HPC-X, Slurm, Docker, Nsight Systems/Compute, CUPTI, Torch Profiler</dd>
   </dl>
